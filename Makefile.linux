@@ -1,0 +1,67 @@
+CXX = g++
+CFLAGS = -std=c++17 -O3 -Iimgui -Iimgui/backends
+LDFLAGS = -lglfw \
+          -lvulkan \
+          -ldl -lpthread \
+          -lX11 -lXxf86vm -lXrandr -lXi \
+          -ltbb
+
+SRC_DIR = .
+IMGUI_DIR = imgui
+BACKENDS_DIR = imgui/backends
+BUILD_DIR = build
+BIN_DIR = bin
+SHADER_DIR = shaders
+
+SRC = $(wildcard *.cpp)
+IMGUI_SRC = $(wildcard $(IMGUI_DIR)/*.cpp)
+BACKENDS_SRC = $(wildcard $(BACKENDS_DIR)/*.cpp)
+
+OBJ = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
+IMGUI_OBJ = $(IMGUI_SRC:$(IMGUI_DIR)/%.cpp=$(BUILD_DIR)/imgui/%.o)
+BACKENDS_OBJ = $(BACKENDS_SRC:$(BACKENDS_DIR)/%.cpp=$(BUILD_DIR)/imgui/backends/%.o)
+
+SHADERS_SRC = $(wildcard $(SHADER_DIR)/*.vert $(SHADER_DIR)/*.frag)
+SHADERS_SPIRV = $(SHADERS_SRC:%=%.spv)
+
+TARGET = $(BIN_DIR)/Gra
+
+$(shell mkdir -p $(BUILD_DIR)/imgui/backends $(BIN_DIR))
+
+all: $(TARGET) copy-libs copy-assets
+
+$(TARGET): $(SHADERS_SPIRV) $(OBJ) $(IMGUI_OBJ) $(BACKENDS_OBJ)
+	$(CXX) $(CFLAGS) -o $@ $(OBJ) $(IMGUI_OBJ) $(BACKENDS_OBJ) $(LDFLAGS)
+
+copy-libs:
+	@ldd $(TARGET) | grep -E "libglfw|libtbb|libvulkan|libstdc|libgcc" | \
+		awk '{print $$3}' | grep "^/" | while read lib; do \
+			cp -u $$lib $(BIN_DIR)/; \
+			echo "Skopiowano: $$lib"; \
+		done
+	@echo '#!/bin/bash' > $(BIN_DIR)/RUN_THIS.sh
+	@echo 'DIR="$$(dirname "$$0")"' >> $(BIN_DIR)/RUN_THIS.sh
+	@echo 'LD_LIBRARY_PATH="$$DIR" "$$DIR/Gra" "$$@"' >> $(BIN_DIR)/RUN_THIS.sh
+	@chmod +x $(BIN_DIR)/RUN_THIS.sh
+
+$(BUILD_DIR)/%.o: %.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/imgui/%.o: $(IMGUI_DIR)/%.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/imgui/backends/%.o: $(BACKENDS_DIR)/%.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+%.spv: %
+	glslc $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
+
+copy-assets:
+	@mkdir -p $(BIN_DIR)/$(SHADER_DIR)
+	@cp -u $(SHADER_DIR)/*.spv $(BIN_DIR)/$(SHADER_DIR)/
+	@cp -u Roboto-Medium.ttf $(BIN_DIR)/
+
+.PHONY: all clean copy-libs copy-assets

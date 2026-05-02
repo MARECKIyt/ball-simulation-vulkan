@@ -1,0 +1,72 @@
+CXX = g++
+CFLAGS = -std=c++17 -O3 -Iimgui -Iimgui/backends
+LDFLAGS = -lglfw3 \
+          -lgdi32 -lole32 -lshell32 -lcomdlg32 \
+          -lpthread \
+          -lvulkan-1
+
+SRC_DIR = .
+IMGUI_DIR = imgui
+BACKENDS_DIR = imgui/backends
+BUILD_DIR = build
+BIN_DIR = bin
+SHADER_DIR = shaders
+
+SRC = $(wildcard *.cpp)
+IMGUI_SRC = $(wildcard $(IMGUI_DIR)/*.cpp)
+BACKENDS_SRC = $(wildcard $(BACKENDS_DIR)/imgui_impl_glfw.cpp \
+                           $(BACKENDS_DIR)/imgui_impl_vulkan.cpp)
+
+OBJ = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
+IMGUI_OBJ = $(IMGUI_SRC:$(IMGUI_DIR)/%.cpp=$(BUILD_DIR)/imgui/%.o)
+BACKENDS_OBJ = $(BACKENDS_SRC:$(BACKENDS_DIR)/%.cpp=$(BUILD_DIR)/imgui/backends/%.o)
+
+SHADERS_SRC = $(wildcard $(SHADER_DIR)/*.vert $(SHADER_DIR)/*.frag)
+SHADERS_SPIRV = $(SHADERS_SRC:%=%.spv)
+
+TARGET = $(BIN_DIR)/Gra.exe
+
+MINGW_DLL_DIR = /mingw64/bin
+DLLS = libwinpthread-1.dll \
+       libgcc_s_seh-1.dll \
+       libstdc++-6.dll \
+       glfw3.dll
+
+$(shell mkdir -p $(BUILD_DIR)/imgui/backends $(BIN_DIR))
+
+all: $(TARGET) copy-dlls copy-assets
+
+$(TARGET): $(SHADERS_SPIRV) $(OBJ) $(IMGUI_OBJ) $(BACKENDS_OBJ)
+	$(CXX) $(CFLAGS) -o $@ $(OBJ) $(IMGUI_OBJ) $(BACKENDS_OBJ) $(LDFLAGS)
+
+copy-dlls:
+	@for dll in $(DLLS); do \
+		if [ -f $(MINGW_DLL_DIR)/$$dll ]; then \
+			cp -u $(MINGW_DLL_DIR)/$$dll $(BIN_DIR)/; \
+			echo "Skopiowano: $$dll"; \
+		else \
+			echo "BRAK: $$dll"; \
+		fi \
+	done
+
+$(BUILD_DIR)/%.o: %.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/imgui/%.o: $(IMGUI_DIR)/%.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/imgui/backends/%.o: $(BACKENDS_DIR)/%.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+%.spv: %
+	glslc $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
+
+copy-assets:
+	@mkdir -p $(BIN_DIR)/$(SHADER_DIR)
+	@cp -u $(SHADER_DIR)/*.spv $(BIN_DIR)/$(SHADER_DIR)/
+	@cp -u Roboto-Medium.ttf $(BIN_DIR)/
+
+.PHONY: all clean copy-dlls copy-assets

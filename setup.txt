@@ -1,0 +1,38 @@
+LINUX:
+
+arch:
+sudo pacman -S vulkan-devel
+sudo pacman -S glfw
+sudo pacman -S glm
+sudo pacman -S shaderc
+i być może to sudo pacman -S libxi libxxf86vm
+
+jakieś chujowe dystrybucje
+sudo apt install vulkan-tools albo sudo dnf install vulkan-tools
+sudo apt install libvulkan-dev albo sudo dnf install vulkan-loader-devel
+sudo apt install vulkan-validationlayers spirv-tools albo sudo dnf install mesa-vulkan-drivers vulkan-validation-layers-devel
+sudo apt install libglfw3-dev albo sudo dnf install glfw-devel
+sudo apt install libglfw3-dev albo sudo dnf install glfw-devel
+i jakoś zainstalować kompilator shaderów glslc
+i być może to sudo apt install libxxf86vm-dev libxi-dev
+
+kompilacja
+wejść do folderu projektu w konsoli i:
+make -f Makefile.linux
+
+WINDOWS:
+zainstalować MSYS2 i odpalić MSYS2 MINGW64
+a w nim
+pacman -Syu
+pacman -S mingw-w64-x86_64-gcc \
+          mingw-w64-x86_64-cmake \
+          mingw-w64-x86_64-glfw \
+          mingw-w64-x86_64-glm \
+          mingw-w64-x86_64-vulkan-headers \
+          mingw-w64-x86_64-vulkan-loader \
+          mingw-w64-x86_64-shaderc \
+          make
+
+kompilacja
+wejść do folderu projektu w MSYS2 MINGW64 np przez cd /c/Users/NazwaUżytkownika/Desktop/Vulkan jeżeli projekt jest na pulpicie a potem:
+make -f Makefile.windows
