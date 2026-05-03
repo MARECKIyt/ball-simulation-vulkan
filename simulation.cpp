@@ -3,6 +3,7 @@
 #include <iostream>
 #include <execution>
 #include <thread>
+#include <future>
 
 namespace engine
 {
@@ -10,186 +11,174 @@ namespace engine
     {
         end = std::chrono::high_resolution_clock::now();
         srand(time(NULL));
-        maxLiczbaWatkow = std::thread::hardware_concurrency();
-
-        /*// 3 gazy o różnej gęstości
-        AddGas(1000, 0.005f, 3.0f, 0.1f, 0.1f, 1.0f);
-        AddGas(1000, 0.005f, 2.0f, 0.1f, 1.0f, 0.1f);
-        AddGas(1000, 0.005f, 1.0f, 1.0f, 0.1f, 0.1f);
-        */
-
-        /*// 3 kulki o różnej gęstości w powietrzu
-        AddGas(2000, 0.01f, 0.1f, 50, 50, 50);
-        balls.push_back(Ball {0.125f, 2.0f, -0.5f, 0.0f, 0.0f, 0.0f, 255, 50, 50});
-        balls.push_back(Ball {0.125f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50, 255, 50});
-        balls.push_back(Ball {0.125f, 15.0f, 0.5f, 0.0f, 0.0f, 0.0f, 50, 50, 255});
-        */
-
-        /*// 3 kulki o różnej gęstości w powietrzu ale dużo kulek
-        AddGas(18000, 0.002f, 0.0625f, 50, 50, 50);
-        balls.push_back(Ball {0.125f, 8.0f, -0.5f, 0.0f, 0.0f, 0.0f, 255, 50, 50});
-        balls.push_back(Ball {0.125f, 16.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50, 255, 50});
-        balls.push_back(Ball {0.125f, 64.0f, 0.5f, 0.0f, 0.0f, 0.0f, 50, 50, 255});
-        */
-
-        //AddGas(25000, 0.002f, 0.0625f, 50, 50, 50);
+        liczbaWatkow = std::thread::hardware_concurrency();
     }
 
     void Simulation::Update()
     {
         CalcDeltaTime();
         if (!symulacjaAktywna) return;
-
-        const uint16_t size = static_cast<uint16_t>(balls.size());
-        if (size == 0) return;
-
-        std::chrono::_V2::system_clock::time_point t1;
-        if (mierzCzas)
-            t1 = std::chrono::high_resolution_clock::now();
-
-        /* wersja wielowątkowa (działa wolniej niż jednowątkowa)
-        std::for_each(std::execution::par_unseq, balls.begin(), balls.end(),
-        [&](Ball& b)
+        for (uint8_t k = 0; k < krokiFizyki; k++)
         {
-            b.vy += 0.5f * g * dt;
-            b.px += b.vx * dt;
-            b.py += b.vy * dt;
-            b.vy += 0.5f * g * dt;
-            if (b.px - b.radius < minX)
-            {
-                b.px = minX + b.radius;
-                b.vx = -b.vx;
-            }
-            else if (b.px + b.radius > maxX)
-            {
-                b.px = maxX - b.radius;
-                b.vx = -b.vx;
-            }
-            if (b.py - b.radius < minY)
-            {
-                b.py = minY + b.radius;
-                b.vy = -b.vy;
-            }
-            else if (b.py + b.radius > maxY)
-            {
-                b.py = maxY - b.radius;
-                b.vy = -b.vy;
-            }
-        }
-        );
-        */
+            const uint16_t size = static_cast<uint16_t>(balls.size());
+            if (size == 0) return;
 
-        for (Ball& ball : balls)
-        {
-            ball.vy += 0.5f * g * dt;
-            ball.px += ball.vx * dt;
-            ball.py += ball.vy * dt;
-            ball.vy += 0.5f * g * dt;
-            if (ball.px - ball.radius < minX)
+            std::chrono::_V2::system_clock::time_point t1;
+            if (mierzCzas)
+                t1 = std::chrono::high_resolution_clock::now();
+
+            // poruszanie kulek wielowątkowo
+            std::for_each(std::execution::par_unseq, balls.begin(), balls.end(),
+            [&](Ball& b)
             {
-                ball.px = minX + ball.radius;
-                ball.vx = -ball.vx;
-            }
-            else if (ball.px + ball.radius > maxX)
-            {
-                ball.px = maxX - ball.radius;
-                ball.vx = -ball.vx;
-            }
-            if (ball.py - ball.radius < minY)
-            {
-                ball.py = minY + ball.radius;
-                ball.vy = -ball.vy;
-            }
-            else if (ball.py + ball.radius > maxY)
-            {
-                ball.py = maxY - ball.radius;
-                ball.vy = -ball.vy;
-            }
-        }
-
-        if (mierzCzas)
-        {
-            auto t2 = std::chrono::high_resolution_clock::now();
-            auto t = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-            std::cout<<"Czas poruszania kulek: "<<t.count()<<"us"<<'\n';
-
-            t1 = std::chrono::high_resolution_clock::now();
-        }
-
-        std::sort(balls.begin(), balls.end(),
-        [](const Ball& a, const Ball& b) {
-            return a.px - a.radius < b.px - b.radius;
-        });
-
-        if (mierzCzas)
-        {
-            auto t2 = std::chrono::high_resolution_clock::now();
-            auto t = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-            std::cout<<"Czas sortowania kulek: "<<t.count()<<"us"<<'\n';
-
-            t1 = std::chrono::high_resolution_clock::now();
-        }
-
-        // sprawdzanie kolizji według posortowanej listy wielowątkowo
-        uint16_t chunk = (size - 1) / liczbaWatkow;
-        uint16_t r = (size - 1) % liczbaWatkow;
-        uint16_t poczatek = 0;
-        std::vector<std::thread> threads;
-        for (uint16_t t = 0; t < liczbaWatkow - 1; t++)
-        {
-            uint16_t dodatkowaIteracja = t < r ? 1 : 0;
-            uint16_t koniec = poczatek + chunk + dodatkowaIteracja;
-            threads.emplace_back([&, poczatek, koniec]()
-            {
-                for (int i = poczatek; i < koniec; i++)
+                b.vy += 0.5f * g * dt;
+                b.px += b.vx * dt;
+                b.py += b.vy * dt;
+                b.vy += 0.5f * g * dt;
+                if (b.px - b.radius < minX)
                 {
-                    for (uint16_t j = i+1; balls[i].px + balls[i].radius > balls[j].px - balls[j].radius and j < size; j++)
-                    {
-                        Simulation::Collision(balls[i], balls[j]);
-                    }
+                    b.px = minX + b.radius;
+                    b.vx = -b.vx;
                 }
+                else if (b.px + b.radius > maxX)
+                {
+                    b.px = maxX - b.radius;
+                    b.vx = -b.vx;
+                }
+                if (b.py - b.radius < minY)
+                {
+                    b.py = minY + b.radius;
+                    b.vy = -b.vy;
+                }
+                else if (b.py + b.radius > maxY)
+                {
+                    b.py = maxY - b.radius;
+                    b.vy = -b.vy;
+                }
+            }
+            );
+
+            // poruszanie kulek jednowątkowo
+            /*for (Ball& ball : balls)
+            {
+                ball.vy += 0.5f * g * dt;
+                ball.px += ball.vx * dt;
+                ball.py += ball.vy * dt;
+                ball.vy += 0.5f * g * dt;
+                if (ball.px - ball.radius < minX)
+                {
+                    ball.px = minX + ball.radius;
+                    ball.vx = -ball.vx;
+                }
+                else if (ball.px + ball.radius > maxX)
+                {
+                    ball.px = maxX - ball.radius;
+                    ball.vx = -ball.vx;
+                }
+                if (ball.py - ball.radius < minY)
+                {
+                    ball.py = minY + ball.radius;
+                    ball.vy = -ball.vy;
+                }
+                else if (ball.py + ball.radius > maxY)
+                {
+                    ball.py = maxY - ball.radius;
+                    ball.vy = -ball.vy;
+                }
+            }*/
+
+            if (mierzCzas)
+            {
+                auto t2 = std::chrono::high_resolution_clock::now();
+                auto t = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+                std::cout<<"Czas poruszania kulek: "<<t.count()<<"us"<<'\n';
+
+                t1 = std::chrono::high_resolution_clock::now();
+            }
+
+            // sorotwanie jednowątkowe
+            /*std::sort(balls.begin(), balls.end(),
+            [](const Ball& a, const Ball& b) {
+                return a.px - a.radius < b.px - b.radius;
+            });*/
+
+            // sortowanie wielowątkowe
+            std::sort(std::execution::par_unseq, balls.begin(), balls.end(),
+            [](const Ball& a, const Ball& b)
+            {
+                return a.px - a.radius < b.px - b.radius;
             });
-            poczatek = koniec;
-        }
-        for (int i = poczatek; i < size - 1; i++)
-        {
-            for (uint16_t j = i+1; balls[i].px + balls[i].radius > balls[j].px - balls[j].radius and j < size; j++)
-            {
-                Simulation::Collision(balls[i], balls[j]);
-            }
-        }
-        for (auto& th : threads) th.join();
 
-        // sprawdzanie kolizji według posortowanej listy
-        /*for (uint16_t i = 0; i < size - 1; i++)
-        {
-            for (uint16_t j = i+1; balls[i].px + balls[i].radius > balls[j].px - balls[j].radius and j < size; j++)
+            if (mierzCzas)
             {
-                Simulation::Collision(balls[i], balls[j]);
-            }
-        }*/
+                auto t2 = std::chrono::high_resolution_clock::now();
+                auto t = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+                std::cout<<"Czas sortowania kulek: "<<t.count()<<"us"<<'\n';
 
-        // proste sprawdzanie kolizji bez żadnych optymalizacji wersja z iteratorem albo nie
-        /*for (auto it = balls.begin(); it != std::prev(balls.end()); it++)
-        {
-            for (auto it2 = std::next(it); it2 != balls.end(); it2++)
-            {
-                Simulation::Collision(*it, *it2);
+                t1 = std::chrono::high_resolution_clock::now();
             }
-        }*/
-        /*for (uint16_t i = 0; i < size - 1; i++)
-        {
-            for (uint16_t j = i+1; j < size; j++)
-            {
-                Simulation::Collision(balls[i], balls[j]);
-            }
-        }*/
 
-        if (mierzCzas)
-        {
-            auto t2 = std::chrono::high_resolution_clock::now();
-            auto t = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-            std::cout<<"Czas kolizji kulek: "<<t.count()<<"us"<<'\n';
+            // sprawdzanie kolizji według posortowanej listy wielowątkowo
+            uint16_t chunk = (size - 1) / liczbaWatkow;
+            uint16_t r = (size - 1) % liczbaWatkow;
+            uint16_t poczatek = 0;
+            std::vector<std::thread> threads;
+            for (uint16_t t = 0; t < liczbaWatkow - 1; t++)
+            {
+                uint16_t dodatkowaIteracja = t < r ? 1 : 0;
+                uint16_t koniec = poczatek + chunk + dodatkowaIteracja;
+                threads.emplace_back([&, poczatek, koniec]()
+                {
+                    for (uint16_t i = poczatek; i < koniec; i++)
+                    {
+                        for (uint16_t j = i+1; balls[i].px + balls[i].radius > balls[j].px - balls[j].radius and j < size; j++)
+                        {
+                            Simulation::Collision(balls[i], balls[j]);
+                        }
+                    }
+                });
+                poczatek = koniec;
+            }
+            for (uint16_t i = poczatek; i < size - 1; i++)
+            {
+                for (uint16_t j = i+1; balls[i].px + balls[i].radius > balls[j].px - balls[j].radius and j < size; j++)
+                {
+                    Simulation::Collision(balls[i], balls[j]);
+                }
+            }
+            for (auto& th : threads) th.join();
+
+            // sprawdzanie kolizji według posortowanej listy
+            /*for (uint16_t i = 0; i < size - 1; i++)
+            {
+                for (uint16_t j = i+1; balls[i].px + balls[i].radius > balls[j].px - balls[j].radius and j < size; j++)
+                {
+                    Simulation::Collision(balls[i], balls[j]);
+                }
+            }*/
+
+            // proste sprawdzanie kolizji bez żadnych optymalizacji wersja z iteratorem albo nie
+            /*for (auto it = balls.begin(); it != std::prev(balls.end()); it++)
+            {
+                for (auto it2 = std::next(it); it2 != balls.end(); it2++)
+                {
+                    Simulation::Collision(*it, *it2);
+                }
+            }*/
+            /*for (uint16_t i = 0; i < size - 1; i++)
+            {
+                for (uint16_t j = i+1; j < size; j++)
+                {
+                    Simulation::Collision(balls[i], balls[j]);
+                }
+            }*/
+
+            if (mierzCzas)
+            {
+                auto t2 = std::chrono::high_resolution_clock::now();
+                auto t = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+                std::cout<<"Czas kolizji kulek: "<<t.count()<<"us"<<'\n';
+            }
         }
     }
 
@@ -272,8 +261,8 @@ namespace engine
         auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         if (mierzCzas)
         {
-            std::cout<<"Czas calej klatki: "<<elapsedTime.count()<<'\n';
+            std::cout<<"Czas calej klatki: "<<elapsedTime.count()<<"us"<<'\n';
         }
-        dt = elapsedTime.count() * 0.000001f * timeScale;
+        dt = elapsedTime.count() * 0.000001f * timeScale / (float)krokiFizyki;
     }
 }

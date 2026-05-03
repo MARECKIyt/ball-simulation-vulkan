@@ -16,7 +16,6 @@ namespace engine
     inline bool symulacjaAktywna = true;
     const bool mierzCzas = false;
     inline uint8_t liczbaWatkow = 1;
-    inline uint8_t maxLiczbaWatkow;
     inline uint16_t nextId = 0;
 
     struct Ball
@@ -38,6 +37,7 @@ namespace engine
         public:
         std::vector<Ball> balls;
         float dt;
+        uint8_t krokiFizyki = 1;
         std::chrono::_V2::system_clock::time_point start;
         std::chrono::_V2::system_clock::time_point end;
 

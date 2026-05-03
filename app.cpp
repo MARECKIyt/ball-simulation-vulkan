@@ -22,6 +22,7 @@ namespace engine
         const char* kulki;
         const char* fps;
         const char* symulacjaAktywna;
+        const char* krokiSymulacji;
         const char* skalaCzasu;
         const char* grawitacja;
         const char* sila;
@@ -57,6 +58,7 @@ namespace engine
         "Kulki: %d",
         "FPS: %.0f",
         "Symulacja aktywna",
+        "Liczba kroków symulacji",
         "Skala czasu",
         "Grawitacja",
         "Siła przeciągania myszką",
@@ -91,6 +93,7 @@ namespace engine
         "Balls: %d",
         "FPS: %.0f",
         "Simulation active",
+        "Number of simulation steps",
         "Time scale",
         "Gravity",
         "Mouse drag force",
@@ -445,13 +448,13 @@ namespace engine
         ImGui::Separator();
 
         ImGui::Checkbox(t.symulacjaAktywna, &symulacjaAktywna);
+        int tmpKroki = simulation.krokiFizyki;
+        ImGui::SliderInt(t.krokiSymulacji, &tmpKroki, 1, 9);
+        simulation.krokiFizyki = static_cast<uint8_t>(tmpKroki);
         ImGui::SliderFloat(t.skalaCzasu, &timeScale, -2.0f, 2.0f, "%.2f");
         ImGui::SliderFloat(t.grawitacja, &g, -10.0f, 10.0f, "%.1f");
         ImGui::SliderFloat(t.sila, &force, 0.0f, 32.0f, "%.0f");
         ImGui::InputFloat(t.maxX, &maxX, 0.01f, 0.01f, "%.2f");
-        int tmpWatki = liczbaWatkow;
-        ImGui::SliderInt(t.watki, &tmpWatki, 1, maxLiczbaWatkow);
-        liczbaWatkow = static_cast<uint8_t>(tmpWatki);
 
         ImGui::Separator();
 
