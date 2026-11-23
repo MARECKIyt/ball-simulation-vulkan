@@ -1,7 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <vector>
-#include <list>
 #include <chrono>
 #include <cstdint>
 
@@ -11,8 +10,8 @@ namespace engine
     inline float maxX = 1.0f;
     const float minY = -1.0f;
     const float maxY = 1.0f;
-    inline float g = 1.0f;
-    inline float timeScale = 0.25f;
+    inline float g = 0.2f;
+    inline float timeScale = 1.0f;
     inline bool symulacjaAktywna = true;
     const bool mierzCzas = false;
     inline uint8_t liczbaWatkow = 1;

@@ -49,10 +49,6 @@ namespace engine
         std::unique_ptr<Pipeline> pipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
-        std::unique_ptr<Model> modelCirc4;
-        std::unique_ptr<Model> modelCirc8;
-        std::unique_ptr<Model> modelCirc16;
-        std::unique_ptr<Model> modelCirc32;
-        std::unique_ptr<Model> modelCirc64;
+        std::unique_ptr<Model> modelCircle;
     };
 }

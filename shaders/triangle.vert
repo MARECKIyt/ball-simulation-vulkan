@@ -6,6 +6,7 @@ layout(location = 2) in vec2 instSizeAspect;
 layout(location = 3) in vec3 instColor;
 
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec2 uv;
 
 void main()
 {
@@ -19,4 +20,5 @@ void main()
 
     gl_Position = vec4(p, 0.0, 1.0);
     fragColor = instColor;
+    uv = position;
 }

@@ -192,11 +192,7 @@ namespace engine
         odleglosc = std::sqrtf(odleglosc);
 
         float normalnyX = dx / odleglosc;
-        if (odleglosc == 0)
-            std::cout<<normalnyX<<'\n';
         float normalnyY = dy / odleglosc;
-        if (odleglosc == 0)
-            std::cout<<normalnyY<<'\n';
         float prostopadlyX = -normalnyY;
         float prostopadlyY = normalnyX;
 

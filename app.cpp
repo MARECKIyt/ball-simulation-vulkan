@@ -171,30 +171,13 @@ namespace engine
 
     void App::LoadModels()
     {
-        std::vector<Model::Vertex> vertices4 {};
-        vertices4.push_back(Model::Vertex{{-1, -1}});
-        vertices4.push_back(Model::Vertex{{-1, 1}});
-        vertices4.push_back(Model::Vertex{{1, -1}});
-        vertices4.push_back(Model::Vertex{{1, -1}});
-        vertices4.push_back(Model::Vertex{{-1, 1}});
-        vertices4.push_back(Model::Vertex{{1, 1}});
-        modelCirc4 = std::make_unique<Model>(device, vertices4);
-
-        std::vector<Model::Vertex> vertices8 {};
-        AddCircleFan(vertices8,  0, 0, 1.0f, 8);
-        modelCirc8 = std::make_unique<Model>(device, vertices8);
-
-        std::vector<Model::Vertex> vertices16 {};
-        AddCircleFan(vertices16, 0, 0, 1.0f, 16);
-        modelCirc16 = std::make_unique<Model>(device, vertices16);
-
-        std::vector<Model::Vertex> vertices32 {};
-        AddCircleFan(vertices32, 0, 0, 1.0f, 32);
-        modelCirc32 = std::make_unique<Model>(device, vertices32);
-
-        std::vector<Model::Vertex> vertices64 {};
-        AddCircleFan(vertices64, 0, 0, 1.0f, 64);
-        modelCirc64 = std::make_unique<Model>(device, vertices64);
+        std::vector<Model::Vertex> quad = {
+            {{-1.0f, -1.0f}},
+            {{ 1.0f, -1.0f}},
+            {{ 1.0f,  1.0f}},
+            {{-1.0f,  1.0f}},
+        };
+        modelCircle = std::make_unique<Model>(device, quad);
     }
 
     void App::CreatePipelineLayout()
@@ -320,9 +303,9 @@ namespace engine
                 aspect
             });
         }
-        modelCirc32->UpdateInstances(instances);
+        modelCircle->UpdateInstances(instances);
         pipeline->Bind(commandBuffers[imageIndex]);
-        modelCirc32->BindAndDraw(commandBuffers[imageIndex]);
+        modelCircle->BindAndDraw(commandBuffers[imageIndex]);
 
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -364,7 +347,7 @@ namespace engine
         static bool przeciaganie = false;
         static uint16_t id;
         static ImVec2 previousMousePos;
-        static float force = 5;
+        static float force = 0;
         if (ImGui::IsKeyPressed(ImGuiKey::ImGuiKey_MouseLeft, false))
         {
             ImVec2 mPos = ImGui::GetMousePos();
@@ -449,12 +432,12 @@ namespace engine
 
         ImGui::Checkbox(t.symulacjaAktywna, &symulacjaAktywna);
         int tmpKroki = simulation.krokiFizyki;
-        ImGui::SliderInt(t.krokiSymulacji, &tmpKroki, 1, 9);
+        ImGui::InputInt(t.krokiSymulacji, &tmpKroki, 1, 10);
         simulation.krokiFizyki = static_cast<uint8_t>(tmpKroki);
-        ImGui::SliderFloat(t.skalaCzasu, &timeScale, -2.0f, 2.0f, "%.2f");
-        ImGui::SliderFloat(t.grawitacja, &g, -10.0f, 10.0f, "%.1f");
-        ImGui::SliderFloat(t.sila, &force, 0.0f, 32.0f, "%.0f");
-        ImGui::InputFloat(t.maxX, &maxX, 0.01f, 0.01f, "%.2f");
+        ImGui::InputFloat(t.skalaCzasu, &timeScale, 0.125f, 0.5f, "%.3f");
+        ImGui::InputFloat(t.grawitacja, &g, 0.05f, 0.2f, "%.3f");
+        ImGui::InputFloat(t.sila, &force, 0.5f, 1.0f, "%.1f");
+        ImGui::InputFloat(t.maxX, &maxX, 0.01f, 0.25f, "%.2f");
 
         ImGui::Separator();
 
@@ -468,12 +451,12 @@ namespace engine
         static float vy = 0.0f;
         static float color[3] = {0.125f, 0.5f, 1.0f};
 
-        ImGui::SliderFloat(t.promien, &radius, 0.01f, 0.3f, "%.3f", ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat(t.masa, &mass, 0.01f, 100.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
+        ImGui::InputFloat(t.promien, &radius, 0.01f, 0.25f, "%.3f");
+        ImGui::InputFloat(t.masa, &mass, 0.05f, 10.0f, "%.2f");
         ImGui::SliderFloat(t.pozX, &px, minX, maxX, "%.3f");
         ImGui::SliderFloat(t.pozY, &py, minY, maxY, "%.3f");
-        ImGui::SliderFloat(t.predkoscX, &vx, -5.0f, 5.0f, "%.3f");
-        ImGui::SliderFloat(t.predkoscY, &vy, -5.0f, 5.0f, "%.3f");
+        ImGui::InputFloat(t.predkoscX, &vx, 0.1f, 1.0f, "%.3f");
+        ImGui::InputFloat(t.predkoscY, &vy, 0.1f, 1.0f, "%.3f");
         ImGui::ColorEdit3(t.kolor, color);
 
         if (ImGui::Button(t.przyciskDodajKulke))
@@ -502,13 +485,13 @@ namespace engine
         static float down = maxY;
         static float colorG[3] = {0.35f, 0.35f, 0.35f};
 
-        ImGui::SliderInt(t.ilosc, &ilosc, 1, 32000, "%d", ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat(t.promienGazu, &radiusG, 0.001f, 0.1f, "%.4f", ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat(t.masaGazu, &massG, 0.01f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat(t.lewo, &left, minX, maxX, "%.3f");
-        ImGui::SliderFloat(t.prawo, &right, minX, maxX, "%.3f");
-        ImGui::SliderFloat(t.gora, &up, minY, maxY, "%.3f");
-        ImGui::SliderFloat(t.dol, &down, minY, maxY, "%.3f");
+        ImGui::InputInt(t.ilosc, &ilosc, 1, 100);
+        ImGui::InputFloat(t.promienGazu, &radiusG, 0.001f, 0.1f, "%.3f");
+        ImGui::InputFloat(t.masaGazu, &massG, 0.001f, 0.1f, "%.3f");
+        ImGui::SliderFloat(t.lewo, &left, minX, maxX, "%.2f");
+        ImGui::SliderFloat(t.prawo, &right, minX, maxX, "%.2f");
+        ImGui::SliderFloat(t.gora, &up, minY, maxY, "%.2f");
+        ImGui::SliderFloat(t.dol, &down, minY, maxY, "%.2f");
         ImGui::ColorEdit3(t.kolorGazu, colorG);
 
         if (ImGui::Button(t.przyciskDodajGaz))
@@ -549,8 +532,8 @@ namespace engine
             std::string kolo = t.kolor;
             kolo += "##2";
 
-            ImGui::SliderFloat(promien.c_str(), &radiusP, 0.01f, 0.3f, "%.3f", ImGuiSliderFlags_Logarithmic);
-            ImGui::SliderFloat(masa.c_str(), &mP, 0.01f, 100.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
+            ImGui::InputFloat(promien.c_str(), &radiusP, 0.01f, 0.3f, "%.3f");
+            ImGui::InputFloat(masa.c_str(), &mP, 0.01f, 100.0f, "%.2f");
             ImGui::ColorEdit3(kolo.c_str(), colorP);
 
             if (ImGui::Button(t.zastosuj))
